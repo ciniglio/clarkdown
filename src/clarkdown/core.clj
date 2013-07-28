@@ -24,10 +24,13 @@
    remainder]
   (cond
    (= next-char \*) (one-star (first remainder) result (rest remainder))
-   (= '() next-char) (result)
+   (nil? next-char) result
    :else (in-normal-text 
           (first remainder) 
           (add-char-to-result result next-char) 
           (rest remainder))))
 
+(defn parse
+  [string]
+  (in-normal-text (first string) [""] (rest string)))
 
