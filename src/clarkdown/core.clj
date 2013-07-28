@@ -1,36 +1,37 @@
 (ns clarkdown.core
   (:require [clarkdown.add-to-result :refer :all])) 
 
-(declare bold)
+(declare em)
 (declare in-normal-text)
 
-(defn one-star
-  [next-char
-   result
-   remainder]
-  (bold next-char (conj result {:type "bold" :text [""]}) remainder))
+(defn em
+  [{:keys [remainder contents] :as last-result}]
+  (let [next-char (first remainder)]
+    (cond
+     (= next-char \*) {:contents contents
+                       :remainder (rest remainder)}
+     :else (em {:contents (add-char-to-result contents next-char)
+                :remainder (rest remainder)}))))
 
-(defn bold
-  [next-char
-   result
-   remainder]
+(defn next-result
+  [{:keys [remainder contents] :as last-result}]
   (cond
-   (= next-char \*) (in-normal-text (first remainder) (conj result "") (rest remainder))
-   :else (bold (first remainder) (add-char-to-result result next-char) (rest remainder))))
+   (= (first remainder) \*) (em {:remainder (rest remainder)
+                                 :contents (conj contents {:text [""]
+                                                           :type "em"})})
+   (empty? remainder) last-result
+   :else {:contents (add-char-to-result contents (first remainder))
+          :remainder (rest remainder)}))
 
 (defn in-normal-text
-  [next-char
-   result
-   remainder]
-  (cond
-   (= next-char \*) (one-star (first remainder) result (rest remainder))
-   (nil? next-char) result
-   :else (in-normal-text 
-          (first remainder) 
-          (add-char-to-result result next-char) 
-          (rest remainder))))
+  [result]
+  (loop [last-result result]
+    (if (empty? (:remainder last-result)) 
+      (:contents last-result)
+      (recur (next-result last-result)))))
 
 (defn parse
   [string]
-  (in-normal-text (first string) [""] (rest string)))
+  (in-normal-text {:contents [""]
+                   :remainder string}))
 
